@@ -6,7 +6,7 @@ const { join } = require('node:path')
 
 const execa = require('execa')
 const writer = require('flush-write-stream')
-const { once } = require('./helper')
+const { once, file } = require('./helper')
 
 // https://github.com/pinojs/pino/issues/542
 test('pino.destination log everything when calling process.exit(0)', async () => {
@@ -67,6 +67,16 @@ test('sync false logs everything when calling flushSync', async () => {
 
   assert.equal(actual.match(/hello/) != null, true)
   assert.equal(actual.match(/world/) != null, true)
+})
+
+// Regression test for issue #2326
+test('sync false destination does not throw when process exits before fd is ready', async () => {
+  const destination = file()
+  const child = execa(process.argv[0], [join(__dirname, 'fixtures', 'destination-file-exit-immediately.js'), destination])
+
+  const { stderr } = await child
+
+  assert.equal(stderr.match(/sonic boom is not ready yet/), null)
 })
 
 test('transports exits gracefully when logging in exit', async () => {
