@@ -3,6 +3,7 @@ const test = require('tape')
 const fresh = require('import-fresh')
 const pinoStdSerializers = require('pino-std-serializers')
 const pino = require('../browser')
+const nodeSymbols = require('../lib/symbols')
 
 levelTest('fatal')
 levelTest('error')
@@ -115,6 +116,13 @@ test('exposes faux stdSerializers', ({ end, ok, same }) => {
 test('exposes err stdSerializer', ({ end, ok }) => {
   ok(pino.stdSerializers.err)
   ok(pino.stdSerializers.err(Error()))
+  end()
+})
+
+test('exposes symbols', ({ end, ok, is }) => {
+  ok(pino.symbols)
+  // the browser build should expose the same symbols module as the node build
+  is(pino.symbols, nodeSymbols)
   end()
 })
 
