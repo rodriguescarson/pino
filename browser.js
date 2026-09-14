@@ -39,7 +39,7 @@ const stdSerializers = {
   req: mock,
   res: mock,
   err: asErrValue,
-  errWithCause: asErrValue
+  errWithCause: asErrWithCauseValue
 }
 function levelToValue (level, logger) {
   return level === 'silent'
@@ -517,6 +517,22 @@ function asErrValue (err) {
     if (obj[key] === undefined) {
       obj[key] = err[key]
     }
+  }
+  return obj
+}
+
+function isErrorLike (err) {
+  return err && typeof err.message === 'string'
+}
+
+function asErrWithCauseValue (err) {
+  const obj = asErrValue(err)
+  // `cause` is a non-enumerable own property on errors created via
+  // `new Error(msg, { cause })`, so the `for...in` loop in asErrValue
+  // never sees it. Check for it explicitly (works for non-enumerable
+  // props, unlike `for...in`) and serialize the cause chain recursively.
+  if ('cause' in err) {
+    obj.cause = isErrorLike(err.cause) ? asErrWithCauseValue(err.cause) : err.cause
   }
   return obj
 }

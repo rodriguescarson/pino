@@ -315,6 +315,45 @@ test('children serializers get called when inherited from parent', ({ end, is })
   end()
 })
 
+test('errWithCause serializer includes the non-enumerable cause property', ({ end, is, same }) => {
+  const cause = new Error('cause message')
+  const err = new Error('err message', { cause })
+
+  const plain = pino.stdSerializers.err(err)
+  is(plain.cause, undefined, 'plain err serializer does not serialize cause')
+
+  const serialized = pino.stdSerializers.errWithCause(err)
+  is(serialized.msg, 'err message')
+  is(serialized.cause.type, 'Error')
+  is(serialized.cause.msg, 'cause message')
+  same(typeof serialized.cause.stack, 'string')
+
+  end()
+})
+
+test('errWithCause serializer recurses through a chain of causes', ({ end, is }) => {
+  const root = new Error('root message')
+  const middle = new Error('middle message', { cause: root })
+  const err = new Error('top message', { cause: middle })
+
+  const serialized = pino.stdSerializers.errWithCause(err)
+
+  is(serialized.cause.msg, 'middle message')
+  is(serialized.cause.cause.msg, 'root message')
+
+  end()
+})
+
+test('errWithCause serializer passes through a non-error cause as-is', ({ end, is }) => {
+  const err = new Error('err message', { cause: 'a string cause' })
+
+  const serialized = pino.stdSerializers.errWithCause(err)
+
+  is(serialized.cause, 'a string cause')
+
+  end()
+})
+
 test('non overridden serializers are available in the children', ({ end, is }) => {
   const pSerializers = {
     onlyParent: () => 'parent',
