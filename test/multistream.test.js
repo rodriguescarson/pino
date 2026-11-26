@@ -414,6 +414,31 @@ test('clone generates a new multistream with all stream at the same level', asyn
   await plan
 })
 
+test('clone resolves a level label to its numeric value', async (t) => {
+  const plan = tspl(t, { plan: 4 })
+  let messageCount = 0
+  const stream = writeStream(function (data, enc, cb) {
+    messageCount += 1
+    cb()
+  })
+  const ms = multistream([{ stream }])
+  const clone = ms.clone('warn')
+
+  plan.equal(clone.minLevel, 40)
+  plan.equal(clone.streams[0].level, 40)
+
+  const log = pino({ level: 'trace' }, clone)
+  log.info('info message not counted')
+  log.warn('warn message')
+  log.error('error message')
+  plan.equal(messageCount, 2)
+
+  const customClone = multistream([{ stream }], { levels: { foo: 35 } }).clone('foo')
+  plan.equal(customClone.minLevel, 35)
+
+  await plan
+})
+
 test('clone supports add, remove, and end methods correctly', async (t) => {
   const plan = tspl(t, { plan: 5 })
   const stream1 = writeStream(function (data, enc, cb) {
